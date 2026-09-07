@@ -1,0 +1,41 @@
+name: Build Release Package
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore
+        run: dotnet restore TicsSettlerToolkit/TicsSettlerToolkit.csproj --configfile NuGet.config
+
+      - name: Build
+        run: dotnet build TicsSettlerToolkit/TicsSettlerToolkit.csproj -c Release --no-restore
+
+      - name: Package
+        shell: pwsh
+        run: |
+          $version = "1.0.0"
+          $root = "dist/BepInEx/plugins/TicsSettlerToolkit"
+          New-Item -ItemType Directory -Force -Path $root | Out-Null
+          Copy-Item TicsSettlerToolkit/bin/Release/net6.0/TicsSettlerToolkit.dll $root/
+          Copy-Item README.md dist/
+          Copy-Item CHANGELOG.md dist/
+          Copy-Item LICENSE dist/
+          Compress-Archive -Path dist/* -DestinationPath "TicsSettlerToolkit-v$version.zip"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TicsSettlerToolkit-v1.0.0
+          path: TicsSettlerToolkit-v1.0.0.zip
